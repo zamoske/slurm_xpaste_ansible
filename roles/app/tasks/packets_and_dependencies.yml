@@ -1,0 +1,74 @@
+- name: "Installing buid-base Develepment tools"
+  ansible.builtin.yum:
+    name:
+      - git 
+      - "@Development tools"
+      - libxml2-devel
+      - libxslt-devel
+      - nodejs
+      - postgresql-devel
+    state: present
+    update_cache: yes
+
+- name: "Adding repo for ruby package"
+  ansible.builtin.yum:
+    name: centos-release-scl-rh
+    state: present
+    update_cache: yes
+
+- name: "Installing ruby"
+  ansible.builtin.yum:
+    name: 
+      - rh-ruby26-ruby
+      - rh-ruby26-ruby-devel 
+    state: present
+    update_cache: yes
+
+- name: "Copy ruby files to /usr"
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    remote_src: yes
+  with_items:
+      - src: "/opt/rh/rh-ruby26/root/usr/bin/"
+        dest: "/usr/bin"
+      - src: "/opt/rh/rh-ruby26/root/usr/lib64/"
+        dest: "/usr/lib64"
+      - src: "/opt/rh/rh-ruby26/root/usr/lib64/libruby.so.2.6"
+        dest: "/usr/lib64"
+
+- name: "Installing bundler, ffi, puma and nokogiri"
+  community.general.gem: 
+    name: "{{ item }}"
+    user_install: no
+    state: present
+  with_items:
+    - bundler:1.16.2
+    - ffi:1.9.23
+    - puma:3.11.3
+    - nokogiri:1.8.2
+
+- name: "Create link to /usr/share/gems"
+  ansible.builtin.file:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    state: link
+  with_items:
+    - src: "/opt/rh/rh-ruby26/root/usr/local/share/gems/gems/bundler-1.16.2/exe/bundle"
+      dest: "/usr/bin/bundle"
+    - src: "/opt/rh/rh-ruby26/root/usr/local/share/gems/gems/puma-3.11.3/bin/puma"
+      dest: "/usr/bin/puma"
+
+- name: "Copy repository from git"
+  git:
+    repo: "https://{{ gitlabuser | urlencode }}:{{ gitlabpassword | urlencode }}@gitlab.slurm.io/edu/xpaste_practicum.git"
+    dest: "/usr/local/xpaste"
+
+- name: "Installing dependencies"
+  community.general.bundler:
+    state: present
+    deployment_mode: yes
+    chdir: /usr/local/xpaste
+    executable: /usr/bin/bundle
+    extra_args: --clean --no-cache
+    exclude_groups: development

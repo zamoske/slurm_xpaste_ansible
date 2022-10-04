@@ -1,0 +1,40 @@
+- name: "Including installation and dependencies tasks"
+  include_tasks: packets_and_dependencies.yml
+
+- name: "Copy nginx configuration"
+  ansible.builtin.copy:
+    src: "/usr/local/xpaste/config/nginx.conf"
+    dest: "/etc/nginx/nginx.conf"
+    remote_src: yes
+
+- name: "Copy robots.txt to app/assets"
+  ansible.builtin.copy:  
+    src: /usr/local/xpaste/public/robots.txt 
+    dest: /usr/local/xpaste/app/assets/robots.txt
+    remote_src: yes
+
+- name: "Update nginx configuration"
+  ansible.builtin.replace: 
+    path: "/etc/nginx/nginx.conf"
+    regexp: '/app/public'
+    replace: '/usr/local/xpaste/app/assets'
+    validate: nginx -c %s -t
+
+- name: "Create xpaste.service and pre_bundle.service"
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  with_items:
+    - src: xpaste.service.j2
+      dest: /etc/systemd/system/xpaste.service
+    - src: pre_bundle.service.j2
+      dest: /etc/systemd/system/pre_bundle.service
+
+- name: "Starting app service"
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: started
+    daemon_reload: yes
+  with_items:
+    - pre_bundle.service
+    - xpaste.service

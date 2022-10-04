@@ -1,0 +1,65 @@
+- name: "Installing postgresql packages"
+  ansible.builtin.yum:
+    name: 
+      - postgresql
+      - postgresql-server
+      - postgresql-contrib
+      - python-psycopg2
+      - python-ipaddress
+    state: latest
+    update_cache: yes
+
+- name: "Checking if the posgresql is initialized"
+  ansible.builtin.stat:
+    path: "/var/lib/pgsql/data/pg_hba.conf"
+  register: postgres_init
+
+- name: "Initialize posgresql cluster"
+  shell: "postgresql-setup initdb"
+  when: not postgres_init.stat.exists
+
+- name: "Start and enable postgresql"
+  ansible.builtin.service:
+    name: postgresql
+    state: started
+    enabled: true
+
+- name: "Create database for xpaste app"
+  community.postgresql.postgresql_db:
+    name: "{{ db_name }}"
+  become: true
+  become_user: postgres
+  
+- name: "Create database user"
+  community.postgresql.postgresql_user:
+    name: "{{ db_user }}"
+    password: "{{ db_password }}"
+    state: present
+  become: true
+  become_user: postgres
+
+- name: "Grant privileges to db_user"
+  community.general.postgresql_privs:
+    type: database
+    database: "{{ db_name }}"
+    roles: "{{ db_user }}"
+    grant_option: no
+    privs: all
+  become: yes
+  become_user: postgres
+
+- name: "Allow password authefication for xpaste user"
+  community.postgresql.postgresql_pg_hba:
+    dest: "/var/lib/pgsql/data/pg_hba.conf"
+    create: yes
+    contype: host
+    method: password
+    users: "xpaste"
+  become: true
+  become_user: postgres
+
+- name: "Reload postgresql"
+  ansible.builtin.service:
+    name: postgresql
+    state: reloaded
+    

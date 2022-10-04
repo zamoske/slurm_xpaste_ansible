@@ -1,0 +1,19 @@
+[Unit]
+Description=Xpaste_app
+After=pre_bundle.service
+
+[Service]
+WorkingDirectory=/usr/local/xpaste
+Environment="SECRET_KEY_BASE={{ SECRET_KEY_BASE }}"
+Environment="RAILS_ENV={{ RAILS_ENV }}"
+Environment="RAILS_LOG_TO_STDOUT={{ RAILS_LOG_TO_STDOUT }}"
+Environment="DB_HOST={{ DB_HOST }}"
+Environment="DB_PORT={{ DB_PORT }}"
+Environment="DB_NAME={{ DB_NAME }}"
+Environment="DB_USER={{ DB_USER }}"
+Environment="DB_PASSWORD={{ DB_PASSWORD }}"
+ExecStart=/usr/bin/bundle exec puma -b unix:///var/run/puma.sock -e $RAILS_ENV config.ru
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
