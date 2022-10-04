@@ -1,0 +1,31 @@
+- name: "Insalling app on centOS server"
+  hosts: server
+  become: true
+  vars:
+#    gitlabuser: #Here you can write your gitlabusername to clone app
+#    gitlabpassword: #Here you can write your gitlabpassword to clone app 
+    db_name: xpaste
+    db_user: xpaste
+    db_password: passwordс
+  
+  pre_tasks:
+    - name: "Install epel repo"
+      ansible.builtin.yum:
+        name: epel-release
+        state: present
+    - name: "Installing remi repo"
+      ansible.builtin.yum:
+        name: "http://rpms.remirepo.net/enterprise/remi-release-7.rpm"
+        state: present
+  
+  roles:
+  - geerlingguy.nginx
+  - postgresql
+  - app
+
+  tasks:
+    - name: "Reload nginx"
+      ansible.builtin.service:
+        name: nginx.service
+        state: reloaded 
+  
